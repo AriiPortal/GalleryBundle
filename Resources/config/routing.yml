@@ -1,0 +1,40 @@
+arii_Gallery_index:
+    pattern:  /
+    defaults: { _controller: AriiGalleryBundle:Default:index }
+
+arii_Gallery_readme:
+    pattern:  /readme
+    defaults: { _controller: AriiGalleryBundle:Default:readme }
+
+json_Gallery_ribbon:
+    pattern:  /ribbon.json
+    defaults: { _controller: AriiGalleryBundle:Default:ribbon }
+    
+arii_Gallery_dataview_xml:
+    pattern:  /dataview.xml
+    defaults: { _controller: AriiGalleryBundle:Database:dataview }
+
+arii_Gallery_toolbar_xml:
+    pattern:  /toolbar.xml
+    defaults: { _controller: AriiGalleryBundle:Default:toolbar }
+
+arii_Gallery_tree_xml:
+    pattern:  /tree.xml
+    defaults: { _controller: AriiGalleryBundle:Default:tree }
+
+arii_Gallery_form_xml:
+    pattern:  /form.xml
+    defaults: { _controller: AriiGalleryBundle:Database:form }
+
+arii_Gallery_timeline_xml:
+    pattern:  /timeline.xml
+    defaults: { _controller: AriiGalleryBundle:Database:timeline }
+
+arii_Gallery_photo:
+    pattern:  /photo
+    defaults: { _controller: AriiGalleryBundle:Database:photo }
+
+arii_Gallery_import:
+    pattern:  /import/{source}
+    defaults: { _controller: AriiGalleryBundle:Import:import }
+ 

@@ -1,0 +1,151 @@
+{# src/Arii/JIDBundle/Resources/views/Default/history.html.twig #}
+{% extends "AriiGalleryBundle::layout.html.twig" %}
+{% block body %}
+<body>
+<div>
+<div id="scheduler_here" class="dhx_cal_container" style='width:100%; height:100%;'>
+<div class="dhx_cal_navline">
+<div class="dhx_cal_prev_button">&nbsp;</div>
+<div class="dhx_cal_next_button">&nbsp;</div>
+<div class="dhx_cal_today_button"></div>
+<div class="dhx_cal_date"></div>
+<div class="dhx_cal_tab" name="day_tab" style="right:205px;"></div>
+<div class="dhx_cal_tab" name="week_tab" style="right:140px;"></div>
+<div class="dhx_cal_tab" name="month_tab" style="right:75px;"></div>
+<div class="dhx_cal_tab" name="year_tab" style="right:10px;"></div>
+<div class="dhx_cal_tab" name="agenda_tab" style="right:250px;"></div>
+</div>
+<div class="dhx_cal_header">
+</div>
+<div class="dhx_cal_data">
+</div>	
+</div>
+<script type="text/javascript">
+dhtmlxEvent(window,"load",function(){     
+    globalLayout = new dhtmlXLayoutObject(document.body, "3L");
+    globalLayout.cells("a").setWidth(360);
+    globalLayout.cells("a").hideHeader();
+    globalLayout.cells("b").hideHeader();
+    globalLayout.cells("c").hideHeader();
+    globalLayout.cells("c").setHeight(300);
+
+    globalMenu = globalLayout.cells("a").attachMenu();
+    globalMenu.setIconsPath( "{{ asset('/bundles/ariicore/images/menu/') }}" );
+    globalMenu.loadStruct("{{ url('xml_menu') }}?route={{ app.request.attributes.get('_route') }}");
+
+    myRibbon = globalLayout.cells("a").attachRibbon(); 
+    myRibbon.setIconPath( "{{ asset('/bundles/ariicore/images/ribbon/') }}" );
+    myRibbon.loadStruct("{{ url('json_Gallery_ribbon') }}");
+    myRibbon.attachEvent("onStateChange", StateRibbon );
+    myRibbon.attachEvent("onClick", ClickRibbon );
+
+    myLayout = globalLayout.cells("b").attachLayout("3W");
+
+    scheduler.locale.labels.timeline_tab = "Timeline";
+    //scheduler.locale.labels.section_custom="Section";
+    scheduler.config.details_on_create=false;
+    scheduler.config.details_on_dblclick=false;
+    scheduler.config.xml_date="%Y-%m-%d %H:%i";
+
+    scheduler.config.first_hour = 0;
+    scheduler.config.last_hour = 24;
+
+    scheduler.locale.labels.day_tab = "Day";
+    scheduler.locale.labels.timeline_tab = "Timeline";
+
+    scheduler.config.lightbox.sections=[	
+        { name:"description", height:130, map_to:"text", type:"textarea" , focus:true},
+        {name:"time", height:72, type:"time", map_to:"auto"}
+     ];
+
+    scheduler.templates.event_class=function(start,end,event){
+     return event.color;
+    }
+
+    scheduler.init('scheduler_here', null,"year");	
+
+    scheduler.load( "{{ url('arii_Gallery_timeline_xml') }}?jour=ALL&mois=ALL" );
+    timeline  = globalLayout.cells("c").attachScheduler( null , "year", 'scheduler_here', scheduler);
+
+    globalToolbar = globalLayout.cells("b").attachToolbar();
+    globalToolbar.loadStruct("{{ url('arii_Gallery_toolbar_xml') }}");
+
+    //var dhxTree = globalLayout.cells("a").attachTree();
+    //dhxTree.loadXML("{{ url('arii_Gallery_tree_xml') }}");
+
+    dhxView = myLayout.cells("b").attachDataView({
+                    container:"data_container",
+                    type:{
+                        template: "html->template_container",
+                         height: 220,
+                         width: 200
+                    }
+        });
+
+    formStructure = [
+        {type:"settings", position: "label-left", labelWidth: 80, inputWidth: 350, labelAlign: "right"},
+        {type: "fieldset",name:"info", label: "Info", width: 500, list:[
+            {type: "input", name: 'Photo', label: 'Photo'},
+            {type: "input", name: 'Source', label: 'Source'}
+        ]},
+        {type: "fieldset",name:"exif", label: "Photo", width: 500, list:[
+            {type: "input", name: 'Make', label: 'Appareil'},
+            {type: "input", name: 'Model', label: 'Modèle'},
+            {type: "input", name: 'Orientation', label: 'Orientation'},
+            {type: "input", name: 'ExposureTime', label: 'Exposition'}
+        ]}
+    ];
+
+    var dhxForm = globalLayout.cells("a").attachForm(formStructure);
+
+    param = "annee=2013&mois=%&jour=%&limit=10";
+    dhxView.load("{{ url('arii_Gallery_dataview_xml') }}?"+encodeURIComponent(param));    
+
+    dhxView.attachEvent("onItemClick", function (id, ev, html){
+           globalLayout.cells("b").attachURL("{{ url('arii_Gallery_photo') }}?id="+id); 
+           dhxForm.load("{{ url('arii_Gallery_form_xml') }}?id="+id);    
+           return true;
+    });  
+
+    var annee, mois, jour;
+
+    globalToolbar.attachEvent("onClick", function (id, ev, html){
+           annee = globalToolbar.getListOptionSelected("annee").substr(6);
+           mois = globalToolbar.getListOptionSelected("mois").substr(5);
+            globalToolbar.setItemText('annee',annee);
+            globalToolbar.setItemText('mois',mois);
+            globalLayout.cells("a").progressOn();
+
+           param = "annee="+annee+"&mois="+mois+"&jour=%&limit=10";
+           dhxView.load("{{ url('arii_Gallery_dataview_xml') }}?"+param, function () {
+            alert(" CHARGE ");
+            globalLayout.cells("a").progressOff();
+    });    
+           return true;
+    });  
+
+    globalToolbar.attachEvent("onValueChange", function (id, value){
+            jour = value;       
+            RefreshDataView();
+    });  
+
+    globalToolbar.attachEvent("onClick", function (id, ev, html){
+           annee = globalToolbar.getListOptionSelected("annee").substr(6);
+           mois = globalToolbar.getListOptionSelected("mois").substr(5);
+
+            globalToolbar.setItemText('annee',annee);
+            globalToolbar.setItemText('mois',mois);
+            RefreshDataView();
+    });  
+});
+    
+function RefreshDataView() {
+	globalLayout.cells("a").progressOn();	
+       param = "annee="+annee+"&mois="+mois+"&jour="+jour+"&limit=10";
+       dhxView.load("{{ url('arii_Gallery_dataview_xml') }}?"+param, function () {
+	globalLayout.cells("a").progressOff();
+	});
+};
+</script>
+</body>
+{% endblock %}

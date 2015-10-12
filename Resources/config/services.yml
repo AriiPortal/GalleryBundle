@@ -1,0 +1,4 @@
+services:
+#    arii_gallery.example:
+#        class: Arii\GalleryBundle\Example
+#        arguments: [@service_id, "plain_value", %parameter%]

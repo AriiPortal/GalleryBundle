@@ -1,0 +1,118 @@
+{# src/Arii/JIDBundle/Resources/views/Default/history.html.twig #}
+{% extends "AriiGalleryBundle::layout.html.twig" %}
+{% block body %}
+<style>
+.dhx_dataview_custom_item_selected{
+    font-weight:bold !important;
+    spacing: 0;
+    align: center;
+}
+.dhx_dataview_custom_item {
+    font-size:12px !important;
+    spacing: 0;
+    color: black  !important;
+    background-color: black !important;
+}
+</style>
+<script type="text/javascript">
+dhtmlxEvent(window,"load",function(){     
+    globalLayout = new dhtmlXLayoutObject(document.body, "2U");
+    globalLayout.cells("a").setWidth(345);
+    globalLayout.cells("a").hideHeader();
+    globalLayout.cells("b").hideHeader();
+//    globalLayout.cells("c").hideHeader();
+//    globalLayout.cells("c").setHeight(220);
+
+    myTabBar = globalLayout.cells("b").attachTabbar();
+    myTabBar.addTab("photo","{{ "Media" | trans }}","100px",true);
+    myTabBar.addTab("info","{{ "Information" | trans }}","100px");
+
+    globalMenu = globalLayout.cells("a").attachMenu();
+    globalMenu.setIconsPath( "{{ asset('/bundles/ariicore/images/menu/') }}" );
+    globalMenu.loadStruct("{{ url('xml_menu') }}?route={{ app.request.attributes.get('_route') }}");
+
+    myRibbon = globalLayout.cells("a").attachRibbon(); 
+    myRibbon.setIconPath( "{{ asset('/bundles/ariicore/images/ribbon/') }}" );
+    myRibbon.loadStruct("{{ url('json_Gallery_ribbon') }}");
+    myRibbon.attachEvent("onStateChange", StateRibbon );
+    myRibbon.attachEvent("onClick", ClickRibbon );
+
+    globalToolbar = globalLayout.cells("b").attachToolbar();
+    globalToolbar.loadStruct("{{ url('arii_Gallery_toolbar_xml') }}");
+
+    dhxView = globalLayout.cells("a").attachDataView({
+            container:"data_container",
+            type:{
+                template: "<img src='/thumbnails/#Photo#' border=0/>",
+                height: 45,
+                width: 45,
+                margin:0,
+                padding:0,
+                css:"custom"                       
+            }
+        });
+
+    dhxView.load("{{ url('arii_Gallery_dataview_xml') }}?month=ALL&day=ALL&limit=10");    
+    formStructure = [
+        {type:"settings", position: "label-left", labelWidth: 80, inputWidth: 350, labelAlign: "right"},
+        {type: "fieldset",name:"info", label: "Info", width: 500, list:[
+            {type: "input", name: 'Photo', label: 'Photo'},
+            {type: "input", name: 'Source', label: 'Source'}
+        ]},
+        {type: "fieldset",name:"exif", label: "Photo", width: 500, list:[
+            {type: "input", name: 'Make', label: 'Appareil'},
+            {type: "input", name: 'Model', label: 'Modèle'},
+            {type: "input", name: 'Orientation', label: 'Orientation'},
+            {type: "input", name: 'ExposureTime', label: 'Exposition'}
+        ]}
+    ];
+
+    var dhxForm = myTabBar.cells("info").attachForm(formStructure);
+
+
+    dhxView.attachEvent("onItemClick", function (id, ev, html){
+        myTabBar.cells("photo").attachURL("{{ url('arii_Gallery_photo') }}?id="+id+"&width="+(window.innerWidth-420)); 
+        dhxForm.load("{{ url('arii_Gallery_form_xml') }}?id="+id);    
+        return true;
+    });  
+
+    var annee, mois, jour;
+
+    globalToolbar.attachEvent("onClick", function (id, ev, html){
+           annee = globalToolbar.getListOptionSelected("annee").substr(6);
+           mois = globalToolbar.getListOptionSelected("mois").substr(5);
+            globalToolbar.setItemText('annee',annee);
+            globalToolbar.setItemText('mois',mois);
+            globalLayout.cells("a").progressOn();
+
+            dhxView.load("{{ url('arii_Gallery_dataview_xml') }}?year="+annee+"&month="+mois+"&day="+jour+"&limit=10", function () {
+            globalLayout.cells("a").progressOff();
+    });    
+           return true;
+    });  
+
+    globalToolbar.attachEvent("onValueChange", function (id, value){
+            jour = value;       
+            RefreshDataView();
+    });  
+
+    globalToolbar.attachEvent("onClick", function (id, ev, html){
+           annee = globalToolbar.getListOptionSelected("annee").substr(6);
+           mois = globalToolbar.getListOptionSelected("mois").substr(5);
+
+            globalToolbar.setItemText('annee',annee);
+            globalToolbar.setItemText('mois',mois);
+            RefreshDataView();
+    });  
+});
+    
+function RefreshDataView() {
+        globalLayout.cells("b").progressOn();	
+       param = "annee="+annee+"&mois="+mois+"&jour="+jour+"&limit=10";
+       dhxView.load("{{ url('arii_Gallery_dataview_xml') }}?"+param, function () {
+	globalLayout.cells("b").progressOff();
+	});
+};
+</script>
+</body>
+{% endblock %}

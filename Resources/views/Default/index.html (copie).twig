@@ -1,0 +1,102 @@
+<html>
+<head>
+<style>
+html, body {
+          width: 100%;
+          height: 100%;
+          margin: 0px;
+          overflow: hidden;
+}
+</style>
+<link rel="stylesheet" type="text/css" href="{{ asset('dhtmlx/dhtmlxLayout/codebase/dhtmlxlayout.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ asset('dhtmlx/dhtmlxLayout/codebase/skins/dhtmlxlayout_dhx_black.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ asset('dhtmlx/dhtmlxForm/codebase/skins/dhtmlxform_dhx_skyblue.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ asset('dhtmlx/dhtmlxTree/codebase/skins/dhtmlxtree.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ asset('dhtmlx/dhtmlxTree/codebase/skins/dhtmlxform_dhx_skyblue.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ asset('dhtmlx/dhtmlxToolbar/codebase/skins/dhtmlxtoolbar_dhx_black.css') }}">
+<link rel="STYLESHEET" type="text/css" href="{{ asset('dhtmlx/dhtmlxDataView/codebase/dhtmlxdataview.css') }}">
+
+<script src="{{ asset('dhtmlx/dhtmlxLayout/codebase/dhtmlxcommon.js') }}"></script>
+
+<script src="{{ asset('dhtmlx/dhtmlxLayout/codebase/dhtmlxlayout.js') }}"></script>
+<script src="{{ asset('dhtmlx/dhtmlxForm/codebase/dhtmlxform.js') }}"></script>
+<script src="{{ asset('dhtmlx/dhtmlxTree/codebase/dhtmlxtree.js') }}"></script>
+<script src="{{ asset('dhtmlx/dhtmlxToolbar/codebase/dhtmlxtoolbar.js') }}"></script>
+<script src="{{ asset('dhtmlx/dhtmlxDataView/codebase/dhtmlxdataview.js') }}" type="text/javascript"></script>
+<script src="{{ asset('dhtmlx/dhtmlxLayout/codebase/dhtmlxcontainer.js') }}"></script>
+</head>
+<body>
+<div id="template_container">
+<center><img src="/thumbnails/#Photo#"/>
+<hr/>#Photo#
+</center>
+</div>
+</body>
+<script>
+var dhxLayout;
+bigLayout = new dhtmlXLayoutObject(document.body, "2E");
+bigLayout.cells("a").setHeight(200);
+bigLayout.cells("a").hideHeader();
+bigLayout.cells("b").hideHeader();
+
+var dhxToolbar = bigLayout.cells("a").attachToolbar();
+dhxToolbar.loadXML("{{ url('photos_galerie_toolbar_xml') }}");
+
+dhxLayout = bigLayout.cells("b").attachLayout("3W");
+        
+dhxLayout.cells("a").setWidth(200);
+dhxLayout.cells("a").hideHeader();
+var dhxTree = dhxLayout.cells("a").attachTree();
+dhxTree.loadXML("{{ url('photos_galerie_tree_xml') }}");
+
+dhxLayout.cells("b").hideHeader();
+
+dhxLayout.cells("c").setHeight(250);
+dhxLayout.cells("c").hideHeader();
+
+dhxView = bigLayout.cells("a").attachDataView({
+		container:"data_container",
+		type:{
+	            template: "html->template_container",
+                     height: 220,
+                     width: 200
+	        }
+    });
+
+formStructure = [
+    {type:"settings",position:"label-top"},
+    {type: "fieldset",name:"calculator", label: "Calculator", list:[
+        {type: "input", name: 'firstNum', label: 'First number:'},
+        {type:"input", name:"secNum", label:"Second number:"},
+        {type:"input", name:"resNum", label:"Result:"},
+        {type:"newcolumn"},
+        {type:"button", name:"plus", width:20,offsetTop:2, value:"+"}, 
+        {type:"button", name:"minus",width:20,offsetTop:10, value:"-"},
+        {type:"button", name:"multiply",width:20,offsetTop:10, value:"*"},
+        {type:"button", name:"divide",width:20,offsetTop:10, value:"/"}
+    ]}
+];
+
+dhxForm = dhxLayout.cells("c").attachForm(formStructure);
+
+param = "annee=2013&mois=%&jour=%&limit=10";
+dhxView.load("{{ url('photos_galerie_dataview_xml') }}?"+encodeURIComponent(param));    
+
+dhxView.attachEvent("onItemClick", function (id, ev, html){
+       dhxLayout.cells("b").attachURL("{{ url('photos_galerie_photo') }}?id="+id);    
+       return true;
+});  
+
+dhxToolbar.attachEvent("onClick", function (id, ev, html){
+       annee = dhxToolbar.getListOptionSelected("annee");
+       mois = dhxToolbar.getListOptionSelected("mois");
+       param = "annee="+annee.substr(6)+"&mois="+mois.substr(5)+"&jour=%&limit=10";
+       alert(param);
+       dhxView.load("{{ url('photos_galerie_dataview_xml') }}?"+param);    
+       return true;
+});  
+
+
+</script>
+</html>
+
