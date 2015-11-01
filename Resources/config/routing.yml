@@ -26,7 +26,7 @@ arii_Gallery_form_xml:
     pattern:  /form.xml
     defaults: { _controller: AriiGalleryBundle:Database:form }
 
-arii_Gallery_timeline_xml:
+xml_Gallery_timeline:
     pattern:  /timeline.xml
     defaults: { _controller: AriiGalleryBundle:Database:timeline }
 

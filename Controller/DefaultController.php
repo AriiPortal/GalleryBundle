@@ -32,9 +32,15 @@ class DefaultController extends Controller
     }
     public function ribbonAction()
     {
+        // Date du jour
+        $date = localtime(time(), true);
+        $date['Year'] = $date['tm_year']+1900;
+        $date['Month'] = $date['tm_mon']+1;
+        $date['Day'] = $date['tm_mday'];
+        
         $response = new Response();
         $response->headers->set('Content-Type', 'application/json');
         
-        return $this->render('AriiGalleryBundle:Default:ribbon.json.twig',array(), $response );
+        return $this->render('AriiGalleryBundle:Default:ribbon.json.twig',array('Date' => $date), $response );
     }
 }

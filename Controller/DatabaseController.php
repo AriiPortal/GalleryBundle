@@ -4,6 +4,7 @@ namespace Arii\GalleryBundle\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class DatabaseController extends Controller
 {
@@ -15,30 +16,77 @@ class DatabaseController extends Controller
          set_time_limit ( 300 );
        
        $request = Request::createFromGlobals();
-       $annee = $request->query->get('year');
-       $mois = $request->query->get('month');
-       $jour = $request->query->get('day');
-       $limit = $request->query->get('limit');
+       if ($request->query->get('date')!='') {
+           $date = $request->query->get('date');
+           $annee = substr($date,0,4);
+           $mois = substr($date,4,2);
+           $jour = "%";
+           $limit = 1000;
+       }
+       else {
+           $annee = $request->query->get('year');
+           $mois = $request->query->get('month');
+           $jour = $request->query->get('day');
+           $limit = $request->query->get('limit');
 
-       $now = localtime (time(),true);
-       if ($annee=="") $annee = $now['tm_year']+1900;
-       if ($mois=="") $mois = sprintf("%02d",$now['tm_mon']+1);
-       if ($jour=="") $jour = $now['tm_mday'];
-       if ($limit=="") $limit = 10;
+           $now = localtime (time(),true);
+            if ($annee=="") $annee = $now['tm_year']+1900;
+            if ($mois=="") $mois = sprintf("%02d",$now['tm_mon']+1);
+            if ($jour=="") $jour = $now['tm_mday'];
+            if ($limit=="") $limit = 10;
 
-       if ($annee=="ALL") $annee = "%";
-       if ($mois=="ALL") $mois = "%";
-       if ($jour=="ALL") $jour = "%";
+            if ($annee=="ALL") $annee = "%";
+            if ($mois=="ALL") $mois = "%";
+            if ($jour=="ALL") $jour = "%";
 
+       }
+       
         $db = $this->container->get('arii_core.db');
         $data = $db->Connector('dataview');
-        $qry = "select id,Photo,Orientation,Timestamp from Photo where Photo like \"$annee/$mois/$jour/%\" limit 0,$limit";
+        $qry = "select id,Photo,Orientation,Timestamp from Photo where Photo like \"$annee/$mois/$jour/%\" order by Timestamp";
 
         $data->event->attach("beforeRender", array($this, 'beforeRender') );
         $data->render_sql($qry,"id","Photo");   
     }
     
     public function timelineAction()
+    {
+       set_time_limit ( 3000 );
+ 
+       $request = Request::createFromGlobals();
+       $annee = $request->query->get('year');
+
+       $now = localtime (time(),true);
+       if ($annee=="") $annee = $now['tm_year']+1900;
+
+        $db = $this->container->get('arii_core.db');
+        $data = $db->Connector('data');
+        $qry = "select id,Photo,Orientation,Timestamp from Photo";
+        // where Photo like \"$annee/%\"";
+        $res = $data->sql->query( $qry );
+
+        $xml = '<?xml version="1.0" encoding="utf-8" ?><data>';
+        while ($line = $data->sql->get_next($res)) {
+           $tm = localtime($line['Timestamp'],true);	
+           $id = sprintf("%04d%02d%02d%02d",$tm['tm_year']+1900,$tm['tm_mon']+1,$tm['tm_mday'],$tm['tm_hour']);
+           if (isset($Done[$id])) continue;
+           $Done[$id]=1;
+           $this->Thumbnail($this->Galery.'/'.$line['Photo'], $this->Thumbnails.'/'.$line['Photo'],$line['Orientation'],45,45 );
+           $xml .=  '<event id ="'.$line['id'].'" date="'.$id.'">';
+           $xml .=  '<start_date><![CDATA['.sprintf("%04d/%02d/%02d %02d:00:00",$tm['tm_year']+1900,$tm['tm_mon']+1,$tm['tm_mday'],$tm['tm_hour']).']]></start_date>';
+           $xml .=  '<end_date><![CDATA['.sprintf("%04d/%02d/%02d %02d:59:00",$tm['tm_year']+1900,$tm['tm_mon']+1,$tm['tm_mday'],$tm['tm_hour']).']]></end_date>';
+           $xml .=  '<text><![CDATA[<img src="/thumbnails/'.$line['Photo'].'"/>]]></text>';
+           $xml .=  '<details><![CDATA[<img src="/thumbnails/'.$line['Photo'].'"/>]]></details>';
+           $xml .=  '</event>';
+        }
+        $xml .= '</data>';
+        $response = new Response();
+        $response->headers->set('Content-Type', 'text/xml');
+        $response->setContent( $xml );
+        return $response;
+    }
+
+    public function timeline2Action()
     {
        set_time_limit ( 3000 );
  
@@ -57,24 +105,28 @@ class DatabaseController extends Controller
        if ($annee=="ALL") $annee = "%";
        if ($mois=="ALL") $mois = "%";
        if ($jour=="ALL") $jour = "%";
-
+// <data><event id="70067"><start_date>2015/08/01 08:27:57</start_date><end_date>2015/08/01 08:27:57</end_date><text><img src="/thumbnails/2015/08/01/IMG_1754.JPG"/></text><details><img src="/thumbnails/2015/08/01/IMG_1754.JPG"/></details></event>
+        
         $db = $this->container->get('arii_core.db');
         $data = $db->Connector('scheduler');
         $qry = "select id,Photo,Orientation,Timestamp from Photo where Photo like \"$annee/$mois/$jour/%\" limit 0,$limit";
 
+        
+        
         $data->event->attach("beforeRender", array($this, 'beforeTimeline') );
         $data->render_sql($qry,"id","start_date,end_date,event_name,details");
     }
-
+    
     public function beforeTimeline($row) {
 	$photo = $row->get_value('Photo');
+
 	$tm = localtime($row->get_value('Timestamp'),true);	
 	$date = sprintf("%04d/%02d/%02d %02d:%02d:%02d",$tm['tm_year']+1900,$tm['tm_mon']+1,$tm['tm_mday'],$tm['tm_hour'],$tm['tm_min'],$tm['tm_sec']);
 	$row->set_value('start_date',$date);
 	$row->set_value('end_date',$date );
-        $this->Thumbnail($this->Galery.'/'.$photo, $this->Thumbnails.'/'.$photo,$row->get_value('Orientation'),45,45 );
-	$row->set_value('event_name', '<img src="/icons_/'.$photo.'"/>' );
-	$row->set_value('details', '<img src="/tumbnails/'.$photo.'"/>' );
+//        $this->Thumbnail($this->Galery.'/'.$photo, $this->Thumbnails.'/'.$photo,$row->get_value('Orientation'),45,45 );
+	$row->set_value('event_name', '<img src="/thumbnails/'.$photo.'"/>' );
+	$row->set_value('details', '<img src="/thumbnails/'.$photo.'"/>' );
 	}
 
     public function beforeRender($row) {
@@ -106,7 +158,9 @@ class DatabaseController extends Controller
             }
             // Redimensionnement
             $image_p = imagecreatetruecolor($new_width, $new_height );
-            $image = imagecreatefromjpeg($filename);
+            if (!($image = @imagecreatefromjpeg($filename))) {
+                return $image_p;
+            }
             imagecopyresampled($image_p, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height);
 	    if ($orientation == 1) 	
             	$image = imagerotate($image_p, 0, 0);
@@ -209,7 +263,7 @@ return 1;
        
         $db = $this->container->get('arii_core.db');
         $data = $db->Connector('form');
-        $qry = "select id,Photo,Orientation,Timestamp from Photo where Photo like \"$annee/$mois/$jour/%\" limit 0,$limit";
+        // $qry = "select id,Photo,Orientation,Timestamp from Photo where id=";
        	$data->render_table("Photo","id","Photo,Source,FileSize,Make,Model,Orientation,ExposureTime,FNumber,ExposureProgram,ISOSpeedRatings,ShutterSpeedValue,ApertureValue,ExposureBiasValue,MeteringMode,Flash,FocalLength");   
     }
 
